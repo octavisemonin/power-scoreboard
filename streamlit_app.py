@@ -3,6 +3,12 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
+st.set_page_config(
+    page_title='The Power Scoreboard',
+    page_icon='⚡️', # This is an emoji shortcode. Could be a URL too.
+    layout='wide'
+)
+
 st.title("⚡️ The Power Scoreboard")
 st.write(
     "A handy energy scoreboard."
@@ -17,6 +23,7 @@ eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{y
 '### Operating'
 @st.cache_data(ttl='1d', show_spinner='Getting operating plant data...')
 def get_operating_data():
+
     o = pd.read_excel(eia860m, sheet_name='Operating', skiprows=2, skipfooter=2)
     o['Nameplate Capacity (MW)'] = pd.to_numeric(o['Nameplate Capacity (MW)'], errors='coerce')
 
@@ -75,6 +82,7 @@ st.plotly_chart(mw_operating_line)
 '### Planned'
 @st.cache_data(ttl='1d', show_spinner='Getting planned plant data...')
 def get_planned_data():
+    
     p = pd.read_excel(eia860m, sheet_name='Planned', skiprows=2, skipfooter=2)
     p['Nameplate Capacity (MW)'] = pd.to_numeric(p['Nameplate Capacity (MW)'], errors='coerce')
 

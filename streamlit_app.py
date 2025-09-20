@@ -15,7 +15,7 @@ eia860m = f'https://www.eia.gov/electricity/data/eia860m/archive/xls/{month}_gen
 eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
 
 '### Operating'
-@st.cache_data(ttl='1d', show_spinner='Getting Operating data...')
+@st.cache_data(ttl='1d', show_spinner='Getting operating plant data...')
 def get_operating_data():
     o = pd.read_excel(eia860m, sheet_name='Operating', skiprows=2, skipfooter=2)
     o['Nameplate Capacity (MW)'] = pd.to_numeric(o['Nameplate Capacity (MW)'], errors='coerce')
@@ -43,7 +43,7 @@ mw_operating_month_bar = px.bar(
 
 mw_operating_month_bar.update_xaxes(range=["2023-01", f"{year}-08"])
 
-st.plotly_chart(mw_operating_month_bar, use_container_width=True)
+st.plotly_chart(mw_operating_month_bar)
 
 # By Year
 mw_operating = o.groupby(['Operating Year','Technology'])['Nameplate Capacity (MW)'].sum().unstack()
@@ -58,8 +58,8 @@ mw_operating_bar = px.bar(
     barmode='stack'
 )
 
-st.plotly_chart(mw_operating_bar, use_container_width=True)
-st.dataframe(mw_operating)
+st.plotly_chart(mw_operating_bar)
+# st.dataframe(mw_operating)
 
 mw_operating_line = px.line(
     mw_operating.reset_index(), 
@@ -70,16 +70,21 @@ mw_operating_line = px.line(
     # color="Reporting Year", 
 )
 
-st.plotly_chart(mw_operating_line, use_container_width=True)
+st.plotly_chart(mw_operating_line)
 
 '### Planned'
-p = pd.read_excel(eia860m, sheet_name='Planned', skiprows=2, skipfooter=2)
-p['Nameplate Capacity (MW)'] = pd.to_numeric(p['Nameplate Capacity (MW)'], errors='coerce')
-# st.dataframe(p)
+@st.cache_data(ttl='1d', show_spinner='Getting planned plant data...')
+def get_planned_data():
+    p = pd.read_excel(eia860m, sheet_name='Planned', skiprows=2, skipfooter=2)
+    p['Nameplate Capacity (MW)'] = pd.to_numeric(p['Nameplate Capacity (MW)'], errors='coerce')
 
-# Format as YYYY-MM
-p['month'] = p['Planned Operation Month'].astype(int).astype(str).str.zfill(2)
-p['Year-Month'] = p['Planned Operation Year'].astype(int).astype(str) + '-' + p['month']
+    # Format as YYYY-MM
+    p['month'] = p['Planned Operation Month'].astype(int).astype(str).str.zfill(2)
+    p['Year-Month'] = p['Planned Operation Year'].astype(int).astype(str) + '-' + p['month']
+
+    return p.loc[p['Planned Operation Year'] < 2035]
+
+p = get_planned_data()
 
 # By Year-Month
 mw_planned = p.groupby(['Year-Month','Technology'])['Nameplate Capacity (MW)'].sum()
@@ -93,7 +98,7 @@ mw_planned_month_bar = px.bar(
 
 mw_planned_month_bar.update_xaxes(range=[f"{year}-06", f"{int(year)+5}-01"])
 
-st.plotly_chart(mw_planned_month_bar, use_container_width=True)
+st.plotly_chart(mw_planned_month_bar)
 
 # By Year
 mw_planned = p.groupby(['Planned Operation Year','Technology'])['Nameplate Capacity (MW)'].sum().unstack()
@@ -108,8 +113,8 @@ mw_planned_bar = px.bar(
     barmode='stack'
 )
 
-st.plotly_chart(mw_planned_bar, use_container_width=True)
-st.dataframe(mw_planned)
+st.plotly_chart(mw_planned_bar)
+# st.dataframe(mw_planned)
 
 mw_planned_line = px.line(
     mw_planned.reset_index(), 
@@ -120,4 +125,4 @@ mw_planned_line = px.line(
     # color="Reporting Year", 
 )
 
-st.plotly_chart(mw_planned_line, use_container_width=True)
+st.plotly_chart(mw_planned_line)

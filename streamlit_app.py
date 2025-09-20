@@ -42,7 +42,6 @@ mw_operating_month_bar = px.bar(
 )
 
 mw_operating_month_bar.update_xaxes(range=["2023-01", f"{year}-08"])
-
 st.plotly_chart(mw_operating_month_bar)
 
 # By Year
@@ -58,6 +57,7 @@ mw_operating_bar = px.bar(
     barmode='stack'
 )
 
+mw_operating_bar.update_xaxes(range=[1950, None])
 st.plotly_chart(mw_operating_bar)
 # st.dataframe(mw_operating)
 

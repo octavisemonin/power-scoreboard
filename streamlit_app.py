@@ -11,7 +11,7 @@ st.set_page_config(
 
 st.title("⚡️ The Power Scoreboard")
 st.write(
-    "A handy energy scoreboard."
+    "A handy energy scoreboard for the United States."
 )
 
 @st.cache_data(ttl='1d', show_spinner='Getting EIA data...')
@@ -143,6 +143,8 @@ mw_line.update_xaxes(range=[start_year, None])
 mw_line.add_vline(x="2025", line_width=1, line_dash="dot")
 mw_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
 st.plotly_chart(mw_line)
+
+'_Sources: [Form EIA-860](https://www.eia.gov/electricity/data/eia860/) and [Form EIA-860M](https://www.eia.gov/electricity/data/eia860m/)_'
 
 # '### Operating'
 # # By Year-Month

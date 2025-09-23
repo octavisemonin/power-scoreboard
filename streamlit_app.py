@@ -39,7 +39,7 @@ def get_eia_data(eia860m):
 
     return o, p, plants
 
-month = 'july'
+month = 'august'
 year = '2025'
 
 eia860m = f'https://www.eia.gov/electricity/data/eia860m/archive/xls/{month}_generator{year}.xlsx'
@@ -56,30 +56,51 @@ plants['Reporting Period'] = f"{year}-{month.capitalize()}"
 #                     value=16)
 # top_technologies = mw.sort_values().tail(n_techs)
 
+mw = plants.groupby('Technology')['Nameplate Capacity (MW)'].sum()
+top_technologies = mw.sort_values(ascending=False).head(16)
+
+cols = st.columns(8)
+for col in cols:
+    col.metric(top_technologies.index[cols.index(col)].replace('Natural Gas', 'NG'), 
+               f"{top_technologies.iloc[cols.index(col)]/1E3:.0f} GW") 
+
+# st.metric('Solar Photovoltaic', f"{mw.loc['Solar Photovoltaic']/1E3:.0f} GW")
+# st.metric('Natural Gas Fired Combined Cycle', f"{mw.loc['Natural Gas Fired Combined Cycle']/1E3:.0f} GW")
+# st.metric('Natural Gas Fired Combustion Turbine', f"{mw.loc['Natural Gas Fired Combustion Turbine']/1E3:.0f} GW")
+# st.metric('Natural Gas Steam Turbine', f"{mw.loc['Natural Gas Steam Turbine']/1E3:.0f} GW")
+# st.metric('Natural Gas Steam Turbine', f"{mw.loc['Natural Gas Steam Turbine']/1E3:.0f} GW")
+# st.metric('Natural Gas Internal Combustion Engine', f"{mw.loc['Natural Gas Internal Combustion Engine']/1E3:.0f} GW")
+# st.metric('Onshore Wind Turbine', f"{mw.loc['Onshore Wind Turbine']/1E3:.0f} GW")
+# st.metric('Nuclear', f"{mw.loc['Nuclear']/1E3:.0f} GW")
+# st.metric('Batteries', f"{mw.loc['Batteries']/1E3:.0f} GW")
+# st.metric('Conventional Hydroelectric', f"{mw.loc['Conventional Hydroelectric']/1E3:.0f} GW")
+
+# st.dataframe(top_technologies)
+
 '### Built and Planned Capacity by Year and Month'
 top_only_ym = st.toggle('Only plot the top 16 power technologies', True)
-mw = plants.groupby('Technology')['Nameplate Capacity (MW)'].sum()
-top_technologies = mw.sort_values().tail(16)
-
 mw = plants.groupby(['Year-Month','Technology'])['Nameplate Capacity (MW)'].sum()
 mw = mw.loc[:, top_technologies.index] if top_only_ym else mw
 # if top_only_ym:
 #     mw = mw.loc[mw['Technology'].isin(top_technologies.index)]
 
 mw_month_bar = px.bar(
-    mw.reset_index(), 
+    plants,
+    # mw.reset_index(), 
     x="Year-Month", 
     y="Nameplate Capacity (MW)", 
     color="Technology", 
+    hover_data=["Plant Name","Status","County","Google Map"],
     barmode='stack'
 )
 
+now = "2025-08"
 mw_month_bar.update_xaxes(range=["2023-01", f"{int(year)+5}-08"])
-mw_month_bar.add_vline(x="2025-07", line_width=1, line_dash="dot")
-mw_month_bar.add_annotation(x="2025-07", xanchor='left',
+mw_month_bar.add_vline(x=now, line_width=1, line_dash="dot")
+mw_month_bar.add_annotation(x=now, xanchor='left',
                             y=1.01, yref='paper', 
                             text="Planned", showarrow=False)    
-mw_month_bar.add_annotation(x="2025-07", xanchor='right',
+mw_month_bar.add_annotation(x=now, xanchor='right',
                             y=1.01, yref='paper', 
                             text="Built", showarrow=False)    
 
@@ -97,7 +118,7 @@ mw_month_line = px.line(
 
 mw_month_line.update_xaxes(range=["2023-01", f"{int(year)+5}-08"])
 mw_month_line.update_yaxes(range=[0, max(mw) * 1.1])
-mw_month_line.add_vline(x="2025-07", line_width=1, line_dash="dot")
+mw_month_line.add_vline(x=now, line_width=1, line_dash="dot")
 mw_month_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
 # mw_month_line.update_yaxes(matches=None)
 st.plotly_chart(mw_month_line)
@@ -111,9 +132,6 @@ st.plotly_chart(mw_month_line)
 start_year = 1945
 
 top_only_y = st.toggle('Plot just the top 16 power technologies', True)
-mw = plants.groupby('Technology')['Nameplate Capacity (MW)'].sum()
-top_technologies = mw.sort_values().tail(16)
-
 mw = plants.groupby(['Year','Technology'])['Nameplate Capacity (MW)'].sum()
 mw = mw.loc[:, top_technologies.index] if top_only_y else mw
 
@@ -125,8 +143,15 @@ mw_bar = px.bar(
     barmode='stack'
 )
 
+now = "2025"
 mw_bar.update_xaxes(range=[start_year, None])
-mw_bar.add_vline(x="2025", line_width=1, line_dash="dot")
+mw_bar.add_vline(x=now, line_width=1, line_dash="dot")
+# mw_bar.add_annotation(x=now, xanchor='left',
+#                       y=1.01, yref='paper', 
+#                       text="Planned", showarrow=False)    
+mw_bar.add_annotation(x=now, xanchor='right',
+                      y=1.01, yref='paper', 
+                      text="Built", showarrow=False)    
 st.plotly_chart(mw_bar)
 
 mw_line = px.line(
@@ -140,7 +165,7 @@ mw_line = px.line(
 )
 
 mw_line.update_xaxes(range=[start_year, None])
-mw_line.add_vline(x="2025", line_width=1, line_dash="dot")
+mw_line.add_vline(x=now, line_width=1, line_dash="dot")
 mw_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
 st.plotly_chart(mw_line)
 

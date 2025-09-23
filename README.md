@@ -1,6 +1,6 @@
 # ⚡️ The Power Scoreboard
 
-A handy energy scoreboard.
+A handy energy scoreboard for the United States.
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://power-scoreboard.streamlit.app/)
 

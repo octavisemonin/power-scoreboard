@@ -5,13 +5,15 @@ from datetime import datetime
 
 st.set_page_config(
     page_title='The Power Scoreboard',
-    page_icon='⚡️', # This is an emoji shortcode. Could be a URL too.
-    layout='wide'
+    page_icon='⚡️', 
+    layout='wide',
+    menu_items={"About":"This scoreboard was built by Octavi Semonin, all mistakes are his own. You can email him at octavi@gmail.com to complain.",
+                "Report a bug":'mailto:octavi@gmail.com'}
 )
 
 st.title("⚡️ The Power Scoreboard")
 st.write(
-    "A handy energy scoreboard for the United States."
+    "A handy electricity scoreboard for the United States."
 )
 
 @st.cache_data(ttl='1d', show_spinner='Getting EIA data...')
@@ -33,20 +35,41 @@ def get_eia_data(eia860m):
     p['Month'] = p['Planned Operation Month'].astype(int).astype(str).str.zfill(2)
     p['Year-Month'] = p['Year'].astype(int).astype(str) + '-' + p['Month']
 
-    # p = p.loc[p['Planned Operation Year'] < 2035].copy()
-
     plants = pd.concat([o,p])
 
     return o, p, plants
 
 month = 'august'
 year = '2025'
+year_month = f"{year}-{month.capitalize()}"
 
-eia860m = f'https://www.eia.gov/electricity/data/eia860m/archive/xls/{month}_generator{year}.xlsx'
 eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
 
 o, p, plants = get_eia_data(eia860m)
-plants['Reporting Period'] = f"{year}-{month.capitalize()}"
+plants['Reporting Period'] = year_month
+
+mw = plants.groupby('Technology')['Nameplate Capacity (MW)'].sum()
+top_technologies = mw.sort_values(ascending=False).head(16)
+
+cols = st.columns(8)
+for col in cols:
+    tech = top_technologies.index[cols.index(col)]
+    tech = tech.replace('Natural Gas', 'NG')
+    tech_GW = top_technologies.iloc[cols.index(col)] / 1E3
+    col.metric(tech, f"{tech_GW:.0f} GW") 
+
+# st.dataframe(plants)
+
+plants_list = [plants]
+for year in ['2023','2024']:
+    eia860m = f'https://www.eia.gov/electricity/data/eia860m/archive/xls/{month}_generator{year}.xlsx'
+    _, _, plants_temp = get_eia_data(eia860m)
+    plants_temp['Reporting Period'] = f"{year}-{month.capitalize()}"
+    plants = pd.concat([plants, plants_temp])
+    # plants_list.append(plants_temp) # could also just append to plants instead of list
+
+# plants = pd.concat(plants_list)
+
 # st.dataframe(plants)
 
 # techs = plants['Technology'].unique()
@@ -56,41 +79,27 @@ plants['Reporting Period'] = f"{year}-{month.capitalize()}"
 #                     value=16)
 # top_technologies = mw.sort_values().tail(n_techs)
 
-mw = plants.groupby('Technology')['Nameplate Capacity (MW)'].sum()
-top_technologies = mw.sort_values(ascending=False).head(16)
-
-cols = st.columns(8)
-for col in cols:
-    col.metric(top_technologies.index[cols.index(col)].replace('Natural Gas', 'NG'), 
-               f"{top_technologies.iloc[cols.index(col)]/1E3:.0f} GW") 
-
-# st.metric('Solar Photovoltaic', f"{mw.loc['Solar Photovoltaic']/1E3:.0f} GW")
-# st.metric('Natural Gas Fired Combined Cycle', f"{mw.loc['Natural Gas Fired Combined Cycle']/1E3:.0f} GW")
-# st.metric('Natural Gas Fired Combustion Turbine', f"{mw.loc['Natural Gas Fired Combustion Turbine']/1E3:.0f} GW")
-# st.metric('Natural Gas Steam Turbine', f"{mw.loc['Natural Gas Steam Turbine']/1E3:.0f} GW")
-# st.metric('Natural Gas Steam Turbine', f"{mw.loc['Natural Gas Steam Turbine']/1E3:.0f} GW")
-# st.metric('Natural Gas Internal Combustion Engine', f"{mw.loc['Natural Gas Internal Combustion Engine']/1E3:.0f} GW")
-# st.metric('Onshore Wind Turbine', f"{mw.loc['Onshore Wind Turbine']/1E3:.0f} GW")
-# st.metric('Nuclear', f"{mw.loc['Nuclear']/1E3:.0f} GW")
-# st.metric('Batteries', f"{mw.loc['Batteries']/1E3:.0f} GW")
-# st.metric('Conventional Hydroelectric', f"{mw.loc['Conventional Hydroelectric']/1E3:.0f} GW")
-
-# st.dataframe(top_technologies)
-
 '### Built and Planned Capacity by Year and Month'
 top_only_ym = st.toggle('Only plot the top 16 power technologies', True)
-mw = plants.groupby(['Year-Month','Technology'])['Nameplate Capacity (MW)'].sum()
-mw = mw.loc[:, top_technologies.index] if top_only_ym else mw
+gb = plants.groupby(['Reporting Period','Year-Month','Technology'])
+mw = gb['Nameplate Capacity (MW)'].sum()
+mw = mw.loc[:, :, top_technologies.index] if top_only_ym else mw
+mw = mw.reset_index()
+
+# mw_old = old_plants.groupby(['Reporting Period','Year-Month','Technology'])['Nameplate Capacity (MW)'].sum()
+# mw_old = mw_old.loc[:, :, top_technologies.index] if top_only_ym else mw
+# mw_old = mw_old.reset_index()
+
 # if top_only_ym:
 #     mw = mw.loc[mw['Technology'].isin(top_technologies.index)]
 
 mw_month_bar = px.bar(
-    plants,
-    # mw.reset_index(), 
+    plants.loc[plants['Reporting Period']==year_month],
+    # mw.loc[year_month], 
     x="Year-Month", 
     y="Nameplate Capacity (MW)", 
     color="Technology", 
-    hover_data=["Plant Name","Status","County","Google Map"],
+    hover_data=["Plant Name","County","Entity Name","Status",],
     barmode='stack'
 )
 
@@ -107,17 +116,17 @@ mw_month_bar.add_annotation(x=now, xanchor='right',
 st.plotly_chart(mw_month_bar)
 
 mw_month_line = px.line(
-    mw.reset_index(), 
+    mw, 
     x="Year-Month", 
     y="Nameplate Capacity (MW)", 
     facet_col="Technology",
     facet_col_wrap=4,
     height=800,
-    # color="Reporting Year", 
+    color="Reporting Period", 
 )
 
 mw_month_line.update_xaxes(range=["2023-01", f"{int(year)+5}-08"])
-mw_month_line.update_yaxes(range=[0, max(mw) * 1.1])
+mw_month_line.update_yaxes(range=[0, max(mw['Nameplate Capacity (MW)']) * 1.1])
 mw_month_line.add_vline(x=now, line_width=1, line_dash="dot")
 mw_month_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
 # mw_month_line.update_yaxes(matches=None)
@@ -125,18 +134,15 @@ st.plotly_chart(mw_month_line)
 
 '### Operating and Planned Capacity by Year'
 
-# start_year = st.slider('Start year', 
-#                        min_value=min(plants['Year']), 
-#                        max_value=max(plants['Year']), 
-#                        value=1945)
 start_year = 1945
 
 top_only_y = st.toggle('Plot just the top 16 power technologies', True)
-mw = plants.groupby(['Year','Technology'])['Nameplate Capacity (MW)'].sum()
-mw = mw.loc[:, top_technologies.index] if top_only_y else mw
+gb = plants.groupby(['Reporting Period','Year','Technology'])
+mw = gb['Nameplate Capacity (MW)'].sum()
+mw = mw.loc[:, :, top_technologies.index] if top_only_y else mw
 
 mw_bar = px.bar(
-    mw.reset_index(), 
+    mw.loc[year_month, :, :].reset_index(), 
     x="Year", 
     y="Nameplate Capacity (MW)", 
     color="Technology", 
@@ -161,7 +167,7 @@ mw_line = px.line(
     facet_col="Technology",
     facet_col_wrap=4,
     height=800,
-    # color="Reporting Year", 
+    color="Reporting Period", 
 )
 
 mw_line.update_xaxes(range=[start_year, None])
@@ -211,7 +217,7 @@ st.plotly_chart(mw_line)
 #     y="Nameplate Capacity (MW)", 
 #     facet_col="Technology",
 #     facet_col_wrap=4
-#     # color="Reporting Year", 
+#     # color="Reporting Period", 
 # )
 
 # st.plotly_chart(mw_operating_line)
@@ -254,7 +260,7 @@ st.plotly_chart(mw_line)
 #     y="Nameplate Capacity (MW)", 
 #     facet_col="Technology",
 #     facet_col_wrap=4
-#     # color="Reporting Year", 
+#     # color="Reporting Period", 
 # )
 
 # st.plotly_chart(mw_planned_line)

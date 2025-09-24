@@ -54,6 +54,7 @@ top_technologies = mw.sort_values(ascending=False).head(16)
 cols = st.columns(8)
 for col in cols:
     tech = top_technologies.index[cols.index(col)]
+    tech = tech.replace('Natural Gas Fired', 'NG')
     tech = tech.replace('Natural Gas', 'NG')
     tech_GW = top_technologies.iloc[cols.index(col)] / 1E3
     col.metric(tech, f"{tech_GW:.0f} GW") 

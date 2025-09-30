@@ -19,6 +19,7 @@ st.write(
 @st.cache_data(ttl='1d', show_spinner='Getting EIA data...')
 def get_eia_data(eia860m):
 
+    # Load Operating data
     o = pd.read_excel(eia860m, sheet_name='Operating', skiprows=2, skipfooter=2)
     o['Nameplate Capacity (MW)'] = pd.to_numeric(o['Nameplate Capacity (MW)'], errors='coerce')
 
@@ -27,6 +28,7 @@ def get_eia_data(eia860m):
     o['Month'] = o['Operating Month'].astype(int).astype(str).str.zfill(2)
     o['Year-Month'] = o['Year'].astype(int).astype(str) + '-' + o['Month']
 
+    # Load Planned data
     p = pd.read_excel(eia860m, sheet_name='Planned', skiprows=2, skipfooter=2)
     p['Nameplate Capacity (MW)'] = pd.to_numeric(p['Nameplate Capacity (MW)'], errors='coerce')
 
@@ -61,15 +63,11 @@ for col in cols:
 
 # st.dataframe(plants)
 
-plants_list = [plants]
 for year in ['2023','2024']:
     eia860m = f'https://www.eia.gov/electricity/data/eia860m/archive/xls/{month}_generator{year}.xlsx'
     _, _, plants_temp = get_eia_data(eia860m)
     plants_temp['Reporting Period'] = f"{year}-{month.capitalize()}"
     plants = pd.concat([plants, plants_temp])
-    # plants_list.append(plants_temp) # could also just append to plants instead of list
-
-# plants = pd.concat(plants_list)
 
 # st.dataframe(plants)
 
@@ -94,12 +92,16 @@ mw = mw.reset_index()
 # if top_only_ym:
 #     mw = mw.loc[mw['Technology'].isin(top_technologies.index)]
 
+mask = plants['Reporting Period']==year_month
+mask = mask & plants['Technology'].isin(top_technologies.index) if top_only_ym else mask
+
 mw_month_bar = px.bar(
-    plants.loc[plants['Reporting Period']==year_month],
+    plants.loc[mask],
     # mw.loc[year_month], 
     x="Year-Month", 
     y="Nameplate Capacity (MW)", 
     color="Technology", 
+    category_orders={"Technology": list(top_technologies.index)}, # [::-1]
     hover_data=["Plant Name","County","Entity Name","Status",],
     barmode='stack'
 )

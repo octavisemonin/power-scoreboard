@@ -85,13 +85,6 @@ mw = gb['Nameplate Capacity (MW)'].sum()
 mw = mw.loc[:, :, top_technologies.index] if top_only_ym else mw
 mw = mw.reset_index()
 
-# mw_old = old_plants.groupby(['Reporting Period','Year-Month','Technology'])['Nameplate Capacity (MW)'].sum()
-# mw_old = mw_old.loc[:, :, top_technologies.index] if top_only_ym else mw
-# mw_old = mw_old.reset_index()
-
-# if top_only_ym:
-#     mw = mw.loc[mw['Technology'].isin(top_technologies.index)]
-
 mask = plants['Reporting Period']==year_month
 mask = mask & plants['Technology'].isin(top_technologies.index) if top_only_ym else mask
 
@@ -155,9 +148,9 @@ mw_bar = px.bar(
 now = "2025"
 mw_bar.update_xaxes(range=[start_year, None])
 mw_bar.add_vline(x=now, line_width=1, line_dash="dot")
-# mw_bar.add_annotation(x=now, xanchor='left',
-#                       y=1.01, yref='paper', 
-#                       text="Planned", showarrow=False)    
+mw_bar.add_annotation(x=now, xanchor='left',
+                      y=1.01, yref='paper', 
+                      text="Planned", showarrow=False)    
 mw_bar.add_annotation(x=now, xanchor='right',
                       y=1.01, yref='paper', 
                       text="Built", showarrow=False)    
@@ -179,91 +172,3 @@ mw_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology="
 st.plotly_chart(mw_line)
 
 '_Sources: [Form EIA-860](https://www.eia.gov/electricity/data/eia860/) and [Form EIA-860M](https://www.eia.gov/electricity/data/eia860m/)_'
-
-# '### Operating'
-# # By Year-Month
-# mw_operating = o.groupby(['Operating Year','Technology'])['Nameplate Capacity (MW)'].sum().unstack()
-# top_15 = mw_operating.sum().sort_values().tail(15)
-
-# mw_operating = o.groupby(['Year-Month','Technology'])['Nameplate Capacity (MW)'].sum()
-# mw_operating_month_bar = px.bar(
-#     mw_operating.reset_index(), 
-#     x="Year-Month", 
-#     y="Nameplate Capacity (MW)", 
-#     color="Technology", 
-#     barmode='stack'
-# )
-
-# mw_operating_month_bar.update_xaxes(range=["2023-01", f"{year}-08"])
-# st.plotly_chart(mw_operating_month_bar)
-
-# # By Year
-# mw_operating = o.groupby(['Operating Year','Technology'])['Nameplate Capacity (MW)'].sum().unstack()
-# top_15 = mw_operating.sum().sort_values().tail(15)
-
-# mw_operating = o.groupby(['Operating Year','Technology'])['Nameplate Capacity (MW)'].sum()
-# mw_operating_bar = px.bar(
-#     mw_operating.reset_index(), 
-#     x="Operating Year", 
-#     y="Nameplate Capacity (MW)", 
-#     color="Technology", 
-#     barmode='stack'
-# )
-
-# mw_operating_bar.update_xaxes(range=[1950, None])
-# st.plotly_chart(mw_operating_bar)
-# # st.dataframe(mw_operating)
-
-# mw_operating_line = px.line(
-#     mw_operating.reset_index(), 
-#     x="Operating Year", 
-#     y="Nameplate Capacity (MW)", 
-#     facet_col="Technology",
-#     facet_col_wrap=4
-#     # color="Reporting Period", 
-# )
-
-# st.plotly_chart(mw_operating_line)
-
-# '### Planned'
-
-# # By Year-Month
-# mw_planned = p.groupby(['Year-Month','Technology'])['Nameplate Capacity (MW)'].sum()
-# mw_planned_month_bar = px.bar(
-#     mw_planned.reset_index(), 
-#     x="Year-Month", 
-#     y="Nameplate Capacity (MW)", 
-#     color="Technology", 
-#     barmode='stack'
-# )
-
-# mw_planned_month_bar.update_xaxes(range=[f"{year}-06", f"{int(year)+5}-01"])
-
-# st.plotly_chart(mw_planned_month_bar)
-
-# # By Year
-# mw_planned = p.groupby(['Planned Operation Year','Technology'])['Nameplate Capacity (MW)'].sum().unstack()
-# top_15 = mw_planned.sum().sort_values().tail(15)
-
-# mw_planned = p.groupby(['Planned Operation Year','Technology'])['Nameplate Capacity (MW)'].sum()
-# mw_planned_bar = px.bar(
-#     mw_planned.reset_index(), 
-#     x="Planned Operation Year", 
-#     y="Nameplate Capacity (MW)", 
-#     color="Technology", 
-#     barmode='stack'
-# )
-
-# st.plotly_chart(mw_planned_bar)
-# # st.dataframe(mw_planned)
-
-# mw_planned_line = px.line(
-#     mw_planned.reset_index(), 
-#     x="Planned Operation Year", 
-#     y="Nameplate Capacity (MW)", 
-#     facet_col="Technology",
-#     facet_col_wrap=4
-#     # color="Reporting Period", 
-# )
-
-# st.plotly_chart(mw_planned_line)

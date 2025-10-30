@@ -41,7 +41,7 @@ def get_eia_data(eia860m):
 
     return o, p, plants
 
-month = 'august'
+month = 'september'
 year = '2025'
 year_month = f"{year}-{month.capitalize()}"
 
@@ -170,5 +170,19 @@ mw_line.update_xaxes(range=[start_year, None])
 mw_line.add_vline(x=now, line_width=1, line_dash="dot")
 mw_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
 st.plotly_chart(mw_line)
+
+# plant_map = px.scatter_geo(
+#     plants.loc[mask & (plants['Nameplate Capacity (MW)'] > 50)],
+#     lat='Latitude',
+#     lon='Longitude',
+#     color='Technology',
+#     hover_name='Plant Name',
+#     hover_data=['Entity Name','County','Status','Nameplate Capacity (MW)'],
+#     size='Nameplate Capacity (MW)',
+#     projection='natural earth',
+#     category_orders={"Technology": list(top_technologies.index)}, # [::-1]
+#     title=f'Power Plants in the US as of {year_month}',
+# )
+# st.plotly_chart(plant_map)
 
 '_Sources: [Form EIA-860](https://www.eia.gov/electricity/data/eia860/) and [Form EIA-860M](https://www.eia.gov/electricity/data/eia860m/)_'

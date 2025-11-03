@@ -22,6 +22,7 @@ def get_eia_data(eia860m):
     # Load Operating data
     o = pd.read_excel(eia860m, sheet_name='Operating', skiprows=2, skipfooter=2)
     o['Nameplate Capacity (MW)'] = pd.to_numeric(o['Nameplate Capacity (MW)'], errors='coerce')
+    o['simple_status'] = 'Operating'
 
     # Format as YYYY-MM
     o['Year'] = o['Operating Year']
@@ -31,6 +32,7 @@ def get_eia_data(eia860m):
     # Load Planned data
     p = pd.read_excel(eia860m, sheet_name='Planned', skiprows=2, skipfooter=2)
     p['Nameplate Capacity (MW)'] = pd.to_numeric(p['Nameplate Capacity (MW)'], errors='coerce')
+    p['simple_status'] = 'Planned'
 
     # Format as YYYY-MM
     p['Year'] = p['Planned Operation Year']
@@ -41,16 +43,31 @@ def get_eia_data(eia860m):
 
     return o, p, plants
 
-month = 'september'
 year = '2025'
+month = 'september'
 year_month = f"{year}-{month.capitalize()}"
-
 eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
 
-o, p, plants = get_eia_data(eia860m)
+try:
+    o, p, plants = get_eia_data(eia860m)
+
+except Exception as e:
+    month = 'october'
+    year_month = f"{year}-{month.capitalize()}"
+    st.write(f"⚠️ New {month.capitalize()} data!")
+    eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
+    o, p, plants = get_eia_data(eia860m)
+
 plants['Reporting Period'] = year_month
 
-mw = plants.groupby('Technology')['Nameplate Capacity (MW)'].sum()
+status_options = ['Planned','Operating']
+statuses = st.segmented_control(
+    'Construction status', 
+    status_options, 
+    selection_mode="multi", 
+    default=status_options)
+mask = plants['simple_status'].isin(statuses)
+mw = plants.loc[mask].groupby('Technology')['Nameplate Capacity (MW)'].sum()
 top_technologies = mw.sort_values(ascending=False).head(16)
 
 cols = st.columns(8)

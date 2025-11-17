@@ -60,12 +60,14 @@ except Exception as e:
 
 plants['Reporting Period'] = year_month
 
-status_options = ['Planned','Operating']
-statuses = st.segmented_control(
+status_options = ['Planned','Operating','Both']
+status = st.radio(
     'Construction status', 
     status_options, 
-    selection_mode="multi", 
-    default=status_options)
+    index=2,
+    horizontal=True)
+statuses = [status] if status != 'Both' else status_options[0:2]
+print(statuses)
 mask = plants['simple_status'].isin(statuses)
 mw = plants.loc[mask].groupby('Technology')['Nameplate Capacity (MW)'].sum()
 top_technologies = mw.sort_values(ascending=False).head(16)

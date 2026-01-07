@@ -44,7 +44,8 @@ def get_eia_data(eia860m):
     return o, p, plants
 
 year = '2025'
-month = 'september'
+month = 'november'
+ym_num = f"{year}-09"
 year_month = f"{year}-{month.capitalize()}"
 eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
 
@@ -52,7 +53,8 @@ try:
     o, p, plants = get_eia_data(eia860m)
 
 except Exception as e:
-    month = 'october'
+    month = 'december'
+    ym_num = f"{year}-10"
     year_month = f"{year}-{month.capitalize()}"
     st.write(f"⚠️ New {month.capitalize()} data!")
     eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
@@ -67,7 +69,6 @@ status = st.radio(
     index=2,
     horizontal=True)
 statuses = [status] if status != 'Both' else status_options[0:2]
-print(statuses)
 mask = plants['simple_status'].isin(statuses)
 mw = plants.loc[mask].groupby('Technology')['Nameplate Capacity (MW)'].sum()
 top_technologies = mw.sort_values(ascending=False).head(16)
@@ -118,13 +119,12 @@ mw_month_bar = px.bar(
     barmode='stack'
 )
 
-now = "2025-08"
 mw_month_bar.update_xaxes(range=["2023-01", f"{int(year)+5}-08"])
-mw_month_bar.add_vline(x=now, line_width=1, line_dash="dot")
-mw_month_bar.add_annotation(x=now, xanchor='left',
+mw_month_bar.add_vline(x=ym_num, line_width=1, line_dash="dot")
+mw_month_bar.add_annotation(x=ym_num, xanchor='left',
                             y=1.01, yref='paper', 
                             text="Planned", showarrow=False)    
-mw_month_bar.add_annotation(x=now, xanchor='right',
+mw_month_bar.add_annotation(x=ym_num, xanchor='right',
                             y=1.01, yref='paper', 
                             text="Built", showarrow=False)    
 
@@ -142,7 +142,7 @@ mw_month_line = px.line(
 
 mw_month_line.update_xaxes(range=["2023-01", f"{int(year)+5}-08"])
 mw_month_line.update_yaxes(range=[0, max(mw['Nameplate Capacity (MW)']) * 1.1])
-mw_month_line.add_vline(x=now, line_width=1, line_dash="dot")
+mw_month_line.add_vline(x=ym_num, line_width=1, line_dash="dot")
 mw_month_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
 # mw_month_line.update_yaxes(matches=None)
 st.plotly_chart(mw_month_line)
@@ -164,13 +164,12 @@ mw_bar = px.bar(
     barmode='stack'
 )
 
-now = "2025"
 mw_bar.update_xaxes(range=[start_year, None])
-mw_bar.add_vline(x=now, line_width=1, line_dash="dot")
-mw_bar.add_annotation(x=now, xanchor='left',
+mw_bar.add_vline(x=year_month[0:4], line_width=1, line_dash="dot")
+mw_bar.add_annotation(x=year_month[0:4], xanchor='left',
                       y=1.01, yref='paper', 
                       text="Planned", showarrow=False)    
-mw_bar.add_annotation(x=now, xanchor='right',
+mw_bar.add_annotation(x=year_month[0:4], xanchor='right',
                       y=1.01, yref='paper', 
                       text="Built", showarrow=False)    
 st.plotly_chart(mw_bar)
@@ -186,7 +185,7 @@ mw_line = px.line(
 )
 
 mw_line.update_xaxes(range=[start_year, None])
-mw_line.add_vline(x=now, line_width=1, line_dash="dot")
+mw_line.add_vline(x=year_month[0:4], line_width=1, line_dash="dot")
 mw_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
 st.plotly_chart(mw_line)
 

@@ -44,7 +44,7 @@ def get_eia_data(eia860m):
     return o, p, plants
 
 year = '2025'
-month = 'november'
+month = 'december'
 ym_num = f"{year}-11"
 year_month = f"{year}-{month.capitalize()}"
 eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
@@ -53,8 +53,9 @@ try:
     o, p, plants = get_eia_data(eia860m)
 
 except Exception as e:
-    month = 'december'
-    ym_num = f"{year}-12"
+    year = '2026'
+    month = 'january'
+    ym_num = f"{year}-01"
     year_month = f"{year}-{month.capitalize()}"
     st.write(f"⚠️ New {month.capitalize()} data!")
     eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'

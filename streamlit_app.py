@@ -12,7 +12,7 @@ MONTH_NAMES = [
 
 st.set_page_config(
     page_title='The Power Scoreboard',
-    page_icon='⚡️',
+    page_icon='⚡️', 
     layout='wide',
     menu_items={"About":"This scoreboard was built by Octavi Semonin, all mistakes are his own. You can email him at octavi@gmail.com to complain.",
                 "Report a bug":'mailto:octavi@gmail.com'}
@@ -117,9 +117,11 @@ def get_eia_data(eia860m):
 
     return o, p, plants
 
-# Discover available reporting periods from the EIA website
-available_months = get_available_months()
-labels = [m['label'] for m in available_months]
+year = '2025'
+month = 'december'
+ym_num = f"{year}-11"
+year_month = f"{year}-{month.capitalize()}"
+eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
 
 # Default selections: latest month + same month in 2 preceding years
 latest = available_months[0]
@@ -157,8 +159,8 @@ year_month = primary['label']
 
 status_options = ['Planned','Operating','Both']
 status = st.radio(
-    'Construction status',
-    status_options,
+    'Construction status', 
+    status_options, 
     index=2,
     horizontal=True)
 statuses = [status] if status != 'Both' else status_options[0:2]
@@ -172,7 +174,7 @@ for col in cols:
     tech = tech.replace('Natural Gas Fired', 'NG')
     tech = tech.replace('Natural Gas', 'NG')
     tech_GW = top_technologies.iloc[cols.index(col)] / 1E3
-    col.metric(tech, f"{tech_GW:.0f} GW")
+    col.metric(tech, f"{tech_GW:.0f} GW") 
 
 # st.dataframe(plants)
 
@@ -184,9 +186,9 @@ chart_end = f"{max(all_years)+5}-08"
 # st.dataframe(plants)
 
 # techs = plants['Technology'].unique()
-# n_techs = st.slider('Only plot the top N power technologies',
-#                     min_value=4,
-#                     max_value=len(techs),
+# n_techs = st.slider('Only plot the top N power technologies', 
+#                     min_value=4, 
+#                     max_value=len(techs), 
 #                     value=16)
 # top_technologies = mw.sort_values().tail(n_techs)
 
@@ -202,37 +204,37 @@ mask = mask & plants['Technology'].isin(top_technologies.index) if top_only_ym e
 
 mw_month_bar = px.bar(
     plants.loc[mask],
-    # mw.loc[year_month],
-    x="Year-Month",
-    y="Nameplate Capacity (MW)",
-    color="Technology",
+    # mw.loc[year_month], 
+    x="Year-Month", 
+    y="Nameplate Capacity (MW)", 
+    color="Technology", 
     category_orders={"Technology": list(top_technologies.index)}, # [::-1]
     hover_data=["Plant Name","County","Entity Name","Status",],
     barmode='stack'
 )
 
-mw_month_bar.update_xaxes(range=[chart_start, chart_end])
+mw_month_bar.update_xaxes(range=["2023-01", f"{int(year)+5}-08"])
 mw_month_bar.add_vline(x=ym_num, line_width=1, line_dash="dot")
 mw_month_bar.add_annotation(x=ym_num, xanchor='left',
-                            y=1.01, yref='paper',
-                            text="Planned", showarrow=False)
+                            y=1.01, yref='paper', 
+                            text="Planned", showarrow=False)    
 mw_month_bar.add_annotation(x=ym_num, xanchor='right',
-                            y=1.01, yref='paper',
-                            text="Built", showarrow=False)
+                            y=1.01, yref='paper', 
+                            text="Built", showarrow=False)    
 
 st.plotly_chart(mw_month_bar)
 
 mw_month_line = px.line(
-    mw,
-    x="Year-Month",
-    y="Nameplate Capacity (MW)",
+    mw, 
+    x="Year-Month", 
+    y="Nameplate Capacity (MW)", 
     facet_col="Technology",
     facet_col_wrap=4,
     height=800,
-    color="Reporting Period",
+    color="Reporting Period", 
 )
 
-mw_month_line.update_xaxes(range=[chart_start, chart_end])
+mw_month_line.update_xaxes(range=["2023-01", f"{int(year)+5}-08"])
 mw_month_line.update_yaxes(range=[0, max(mw['Nameplate Capacity (MW)']) * 1.1])
 mw_month_line.add_vline(x=ym_num, line_width=1, line_dash="dot")
 mw_month_line.for_each_annotation(lambda a: a.update(text=a.text.replace("Technology=", "")))
@@ -249,31 +251,31 @@ mw = gb['Nameplate Capacity (MW)'].sum()
 mw = mw.loc[:, :, top_technologies.index] if top_only_y else mw
 
 mw_bar = px.bar(
-    mw.loc[year_month, :, :].reset_index(),
-    x="Year",
-    y="Nameplate Capacity (MW)",
-    color="Technology",
+    mw.loc[year_month, :, :].reset_index(), 
+    x="Year", 
+    y="Nameplate Capacity (MW)", 
+    color="Technology", 
     barmode='stack'
 )
 
 mw_bar.update_xaxes(range=[start_year, None])
 mw_bar.add_vline(x=year_month[0:4], line_width=1, line_dash="dot")
 mw_bar.add_annotation(x=year_month[0:4], xanchor='left',
-                      y=1.01, yref='paper',
-                      text="Planned", showarrow=False)
+                      y=1.01, yref='paper', 
+                      text="Planned", showarrow=False)    
 mw_bar.add_annotation(x=year_month[0:4], xanchor='right',
-                      y=1.01, yref='paper',
-                      text="Built", showarrow=False)
+                      y=1.01, yref='paper', 
+                      text="Built", showarrow=False)    
 st.plotly_chart(mw_bar)
 
 mw_line = px.line(
-    mw.reset_index(),
-    x="Year",
-    y="Nameplate Capacity (MW)",
+    mw.reset_index(), 
+    x="Year", 
+    y="Nameplate Capacity (MW)", 
     facet_col="Technology",
     facet_col_wrap=4,
     height=800,
-    color="Reporting Period",
+    color="Reporting Period", 
 )
 
 mw_line.update_xaxes(range=[start_year, None])

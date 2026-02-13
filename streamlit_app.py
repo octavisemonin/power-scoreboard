@@ -121,19 +121,39 @@ def get_eia_data(eia860m):
 available_months = get_available_months()
 labels = [m['label'] for m in available_months]
 
-# Month-year selector (defaults to most recent)
-selected_label = st.selectbox('Reporting period', labels)
-selected = next(m for m in available_months if m['label'] == selected_label)
+# Default selections: latest month + same month in 2 preceding years
+latest = available_months[0]
+default_labels = [latest['label']]
+prior_years = [m for m in available_months
+               if m['month'] == latest['month'] and m['year'] < latest['year']]
+prior_years.sort(key=lambda x: x['year'], reverse=True)
+for entry in prior_years[:2]:
+    default_labels.append(entry['label'])
 
-year = selected['year']
-month = selected['month']
-month_num = selected['month_num']
+# Multi-select for reporting periods
+selected_labels = st.multiselect('Reporting periods', labels, default=default_labels)
+if not selected_labels:
+    st.warning('Please select at least one reporting period.')
+    st.stop()
+
+# Sort selected periods by date (newest first)
+selected_entries = [m for m in available_months if m['label'] in selected_labels]
+selected_entries.sort(key=lambda x: x['sort_key'], reverse=True)
+
+# Load data for all selected periods
+plants = pd.DataFrame()
+for entry in selected_entries:
+    _, _, plants_temp = get_eia_data(entry['url'])
+    plants_temp['Reporting Period'] = entry['label']
+    plants = pd.concat([plants, plants_temp])
+
+# The most recent selected period drives metrics, bar charts, and vline
+primary = selected_entries[0]
+year = primary['year']
+month = primary['month']
+month_num = primary['month_num']
 ym_num = f"{year}-{month_num:02d}"
-year_month = selected['label']
-eia860m = selected['url']
-
-o, p, plants = get_eia_data(eia860m)
-plants['Reporting Period'] = year_month
+year_month = primary['label']
 
 status_options = ['Planned','Operating','Both']
 status = st.radio(
@@ -156,19 +176,10 @@ for col in cols:
 
 # st.dataframe(plants)
 
-# Load comparison data: same month in the 2 preceding years
-comparison = [m for m in available_months
-              if m['month'] == month and m['year'] < year]
-comparison.sort(key=lambda x: x['year'], reverse=True)
-for entry in comparison[:2]:
-    _, _, plants_temp = get_eia_data(entry['url'])
-    plants_temp['Reporting Period'] = entry['label']
-    plants = pd.concat([plants, plants_temp])
-
-# Determine chart x-axis range from loaded data
-all_years = [int(year)] + [int(e['year']) for e in comparison[:2]]
+# Determine chart x-axis range from all selected periods
+all_years = [int(e['year']) for e in selected_entries]
 chart_start = f"{min(all_years)}-01"
-chart_end = f"{int(year)+5}-08"
+chart_end = f"{max(all_years)+5}-08"
 
 # st.dataframe(plants)
 

@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import requests
 import re
+from datetime import datetime
 
 MONTH_NAMES = [
     'january','february','march','april','may','june',
@@ -24,7 +25,14 @@ st.write(
 
 @st.cache_data(ttl='1d', show_spinner='Discovering available data...')
 def get_available_months():
-    """Scrape the EIA-860M page to find all available month-year file URLs."""
+    """Scrape the EIA-860M page and validate which files actually exist.
+
+    The EIA page lists links for all 12 months of every year, including
+    future months that haven't been published yet. Non-existent files
+    return text/html instead of a spreadsheet content type, so we probe
+    from newest to oldest to find the most recent real file, then include
+    everything from that point back.
+    """
     base = 'https://www.eia.gov/electricity/data/eia860m/'
     resp = requests.get(base)
     resp.raise_for_status()
@@ -33,7 +41,7 @@ def get_available_months():
     pattern = r'((?:archive/)?xls/(\w+)_generator(\d{4})\.xlsx)'
     matches = re.findall(pattern, resp.text)
 
-    available = []
+    all_entries = []
     seen = set()
     for path, month_name, yr in matches:
         month_name = month_name.lower()
@@ -44,7 +52,7 @@ def get_available_months():
         if sort_key in seen:
             continue
         seen.add(sort_key)
-        available.append({
+        all_entries.append({
             'year': yr,
             'month': month_name,
             'month_num': month_num,
@@ -53,8 +61,34 @@ def get_available_months():
             'url': base + path,
         })
 
-    available.sort(key=lambda x: x['sort_key'], reverse=True)
-    return available
+    all_entries.sort(key=lambda x: x['sort_key'], reverse=True)
+
+    # Pre-filter: skip months after the current calendar month (can't exist yet)
+    today = datetime.now()
+    cutoff = f"{today.year}-{today.month:02d}"
+    candidates = [e for e in all_entries if e['sort_key'] <= cutoff]
+
+    # Probe from newest to find the first file that actually exists.
+    # Non-existent files on the EIA site return 200 with text/html;
+    # real files return a spreadsheet content type.
+    validated = []
+    found_latest = False
+    for entry in candidates:
+        if found_latest:
+            # Once we've found the latest real file, assume all older ones exist
+            validated.append(entry)
+            continue
+        try:
+            r = requests.get(entry['url'], stream=True, timeout=8)
+            ct = r.headers.get('Content-Type', '')
+            r.close()
+            if 'spreadsheet' in ct or 'excel' in ct:
+                found_latest = True
+                validated.append(entry)
+        except requests.RequestException:
+            continue
+
+    return validated
 
 @st.cache_data(ttl='1d', show_spinner='Getting EIA data...')
 def get_eia_data(eia860m):
@@ -122,9 +156,9 @@ for col in cols:
 
 # st.dataframe(plants)
 
-# Load comparison data: same month in prior years (up to 2 most recent)
+# Load comparison data: same month in the 2 preceding years
 comparison = [m for m in available_months
-              if m['month'] == month and m['year'] != year]
+              if m['month'] == month and m['year'] < year]
 comparison.sort(key=lambda x: x['year'], reverse=True)
 for entry in comparison[:2]:
     _, _, plants_temp = get_eia_data(entry['url'])

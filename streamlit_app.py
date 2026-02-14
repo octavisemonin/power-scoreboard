@@ -117,11 +117,8 @@ def get_eia_data(eia860m):
 
     return o, p, plants
 
-year = '2025'
-month = 'december'
-ym_num = f"{year}-11"
-year_month = f"{year}-{month.capitalize()}"
-eia860m = f'https://www.eia.gov/electricity/data/eia860m/xls/{month}_generator{year}.xlsx'
+available_months = get_available_months()
+labels = [m['label'] for m in available_months]
 
 # Default selections: latest month + same month in 2 preceding years
 latest = available_months[0]

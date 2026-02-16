@@ -161,7 +161,7 @@ status = st.radio(
     index=2,
     horizontal=True)
 statuses = [status] if status != 'Both' else status_options[0:2]
-mask = plants['simple_status'].isin(statuses)
+mask = plants['simple_status'].isin(statuses) & (plants['Reporting Period'] == year_month)
 mw = plants.loc[mask].groupby('Technology')['Nameplate Capacity (MW)'].sum()
 top_technologies = mw.sort_values(ascending=False).head(16)
 

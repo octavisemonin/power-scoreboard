@@ -20,7 +20,7 @@ st.set_page_config(
 
 st.title("⚡️ The Power Scoreboard")
 st.write(
-    "A handy electricity scoreboard for the United States."
+    "A handy electricity scoreboard for the United States. Does not render well on mobile. Email octavi@gmail.com to complain!"
 )
 
 @st.cache_data(ttl='1d', show_spinner='Discovering available data...')
@@ -129,11 +129,52 @@ prior_years.sort(key=lambda x: x['year'], reverse=True)
 for entry in prior_years[:2]:
     default_labels.append(entry['label'])
 
-# Multi-select for reporting periods
-selected_labels = st.multiselect('Reporting periods', labels, default=default_labels)
+# Select reporting periods, construction status, and MW vs MWh
+cols = st.columns(3, gap='large')
+    
+selected_labels = cols[0].multiselect('Reporting periods', labels, default=default_labels)
 if not selected_labels:
     st.warning('Please select at least one reporting period.')
     st.stop()
+
+status_options = ['Planned','Operating','Both']
+status = cols[1].radio(
+    'Construction status', 
+    status_options, 
+    index=2,
+    horizontal=True)
+
+mw_mwh = cols[2].radio(
+    'Normalize for CF?',
+    ['GW (no)','GWh (yes)'],
+    index=0
+)
+
+# using https://en.wikipedia.org/wiki/Capacity_factor unless otherwise indicated:
+cf_dict = {
+    'Solar Photovoltaic':0.269, # https://atb.nrel.gov/electricity/2024b/utility-scale_pv
+    'Batteries':0.125, # assume a 3h battery (the average of all projects as of March 2026 was actually 2.5h)
+    'Onshore Wind Turbine':0.458, # https://atb.nrel.gov/electricity/2024b/land-based_wind
+    'Offshore Wind Turbine':0.464, # https://atb.nrel.gov/electricity/2024b/offshore_wind
+    'Natural Gas Fired Combined Cycle': 0.60, # https://www.eia.gov/todayinenergy/detail.php?id=48036
+    'Natural Gas Fired Combustion Turbine': 0.118,
+    'Natural Gas Steam Turbine': 0.137,
+    'Natural Gas Internal Combustion Engine': 0.099,
+    'Conventional Steam Coal': 0.54,
+    'Petroleum Liquids': 0.139,
+    'Nuclear': 0.926,
+    'Geothermal': 0.773,
+    'Conventional Hydroelectric': 0.428,
+    'Wood/Wood Waste Biomass': 0.493,
+    'Geothermal': 0.773,
+    'Municipal Solid Waste': 0.733
+}
+
+def cf(row):
+    if row['Technology'] in cf_dict.keys():
+        return row['Nameplate Capacity (MW)'] * cf_dict[row['Technology']]
+    else:
+        return row['Nameplate Capacity (MW)']
 
 # Sort selected periods by date (newest first)
 selected_entries = [m for m in available_months if m['label'] in selected_labels]
@@ -154,17 +195,16 @@ month_num = primary['month_num']
 ym_num = f"{year}-{month_num:02d}"
 year_month = primary['label']
 
-status_options = ['Planned','Operating','Both']
-status = st.radio(
-    'Construction status', 
-    status_options, 
-    index=2,
-    horizontal=True)
+if mw_mwh == 'GWh (yes)':
+    plants['Nameplate Capacity (MW)'] = plants.apply(cf, axis=1)
+
 statuses = [status] if status != 'Both' else status_options[0:2]
 mask = plants['simple_status'].isin(statuses) & (plants['Reporting Period'] == year_month)
 mw = plants.loc[mask].groupby('Technology')['Nameplate Capacity (MW)'].sum()
 top_technologies = mw.sort_values(ascending=False).head(16)
 
+''
+'### Top electricity assets by '+mw_mwh.split(' ')[0]
 cols = st.columns(8)
 for col in cols:
     tech = top_technologies.index[cols.index(col)]
